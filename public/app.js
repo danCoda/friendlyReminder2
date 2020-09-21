@@ -123,15 +123,19 @@ const showFriendsList = () => {
 document.querySelector(".newFriendForm").addEventListener('submit', e => {
     e.preventDefault();
     // Get new friend input. 
+    const reminderFrequency = document.getElementById("friendRemindFrequency");
+    console.warn(reminderFrequency.options[reminderFrequency.selectedIndex].value);
     userInfo.friend = {
         firstName: document.querySelector("#fName").value,
         lastName: document.querySelector("#lName").value,
-        lastMetDate: document.querySelector("#lastMetDate").value
+        lastMetDate: document.querySelector("#lastMetDate").value,
+        remindFrequency: reminderFrequency.options[reminderFrequency.selectedIndex].value
     }
     // Store new friend. 
     db.collection("user").doc(userInfo.uid).collection("friends").add({
             name: `${userInfo.friend.firstName} ${userInfo.friend.lastName}`,
-            lastMetDate: new Date(userInfo.friend.lastMetDate)
+            lastMetDate: new Date(userInfo.friend.lastMetDate),
+            remindFrequency: userInfo.friend.remindFrequency
         })
         .then(docRef => {
             console.log("Document written with ID: ", docRef.id);
