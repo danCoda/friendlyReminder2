@@ -27,22 +27,29 @@ const auth = firebase.auth();
 const googleLoginProvider = new firebase.auth.GoogleAuthProvider();
 //========END==========
 //========START==========
+// State information. 
+let userInfo = {};
+//========END==========
+//========START==========
 // Click handlers.
 signInBtn.onclick = () => auth.signInWithPopup(googleLoginProvider);
-signOutBtn.onclick = () => auth.signOut();
+signOutBtn.onclick = () => {
+    resetState();
+    auth.signOut();
+}
 //========END==========
 //========START==========
 // Authenticate user.
 auth.onAuthStateChanged(async user => {
     if (user) { // Logged in.
         // Check if they exist in the user collection. If not, 
-        console.log("User details: ", user.uid);
-
         db.collection("user").doc(user.uid).get().then(userSnapshot => {
             console.log("User exists? ", userSnapshot.exists);
             if (userSnapshot.exists) {
-                console.log("User exists!");
-                showFriendsList(user.uid);
+                console.log("User exists!", userSnapshot.data());
+                userInfo = userSnapshot.data();
+                userInfo.uid = user.uid;
+                showFriendsList();
             } else {
                 console.log("User doesn't exist!");
                 db.collection("user").doc(user.uid).set({
@@ -50,6 +57,8 @@ auth.onAuthStateChanged(async user => {
                         lastLoginDate: new Date()
                     }).then(() => {
                         console.log("User successfully written to user collection!");
+                        userInfo.uid = user.uid;
+                        Object.assign(userInfo, userSnapshot.data());
                     })
                     .catch(e => {
                         console.error("Error writing document: ", e);
@@ -64,36 +73,90 @@ auth.onAuthStateChanged(async user => {
         whenSignedIn.hidden = true;
         whenSignedOut.hidden = false;
         userDetails.innerHTML = "";
+        resetState();
     }
 });
 //========END==========
 //========START==========
-const showFriendsList = (uid) => {
+const resetState = () => {
+    userInfo = {};
+    document.getElementById("friendsList").innerHTML = "";
+}
+//========END==========
+//========START==========
+const showFriendsList = () => {
     console.log("Heyo");
-    db.collection("user").doc(uid).collection("friends").onSnapshot(friendsSnapshot => {
+    db.collection("user").doc(userInfo.uid).collection("friends").onSnapshot(friendsSnapshot => {
         let changes = friendsSnapshot.docChanges();
+        console.log("CHanges: ", changes);
+        window.changes = changes;
         changes.forEach(change => {
+            console.log(change.type);
+            console.log(change.doc.id);
 
-            console.log(change);
-            console.log(change.doc.data());
-
-            let li = document.createElement('li');
-            const friendName = document.createTextNode(change.doc.data().name);
-            li.appendChild(friendName);
-            friendsList.appendChild(li);
+            if (change.type === "added") {
+                console.log("Added");
+                const markup = `
+                    <li class="friendListFriend" id="${change.doc.id}">
+                        <a href="">${change.doc.data().name}</a>
+                        <button type="button" onclick="deleteFriend('${change.doc.id}')">x</button>
+                    </li>
+                    `;
+                friendsList.insertAdjacentHTML("beforeend", markup);
+            }
+            if (change.type === "modified") {
+                console.log("Modified");
+                // If the name or ID's changed, update the UI.
+            }
+            if (change.type === "removed") {
+                // Remove friend from list.
+                console.log("Removed");
+                const friendNode = document.querySelector(`#${change.doc.id}`);
+                if (friendNode) friendNode.parentElement.removeChild(friendNode);
+            }
         });
     });
 }
-// Login. 
+//========END==========
+//========START==========
+// Add new friend.
+document.querySelector(".newFriendForm").addEventListener('submit', e => {
+    e.preventDefault();
+    // Get new friend input. 
+    userInfo.friend = {
+        firstName: document.querySelector("#fName").value,
+        lastName: document.querySelector("#lName").value,
+        lastMetDate: document.querySelector("#lastMetDate").value
+    }
+    // Store new friend. 
+    db.collection("user").doc(userInfo.uid).collection("friends").add({
+            name: `${userInfo.friend.firstName} ${userInfo.friend.lastName}`,
+            lastMetDate: new Date(userInfo.friend.lastMetDate)
+        })
+        .then(docRef => {
+            console.log("Document written with ID: ", docRef.id);
+        })
+        .catch(e => {
+            console.error("Error adding document: ", e);
+        });
+    console.log(userInfo.friend);
+});
+//========END==========
+//========START==========
+// Delete friend.
+const deleteFriend = id => {
+    // Delete from Firebase. 
+    db.collection("user").doc(userInfo.uid).collection("friends").doc(id).delete()
+        .then(() => {
+            console.log("Document successfully deleted!");
+        }).catch(e => {
+            console.error("Error removing document: ", e);
+        });
+}
+//========END==========
 
-// Add new friend. 
-/* db.collection("cities").add({
-    name: "Tokyo",
-    country: "Japan"
-})
-.then(function(docRef) {
-    console.log("Document written with ID: ", docRef.id);
-})
-.catch(function(error) {
-    console.error("Error adding document: ", error);
-}); */
+/* export const deleteLike = id => {
+    const el = document.querySelector(`.likes__link[href*="${id}"]`).parentElement;
+    if (el) el.parentElement.removeChild(el);
+}
+ */
