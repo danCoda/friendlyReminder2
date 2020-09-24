@@ -6,6 +6,8 @@ const signInBtn = document.getElementById("signInBtn");
 const friendsList = document.getElementById("friendsList");
 const signOutBtn = document.getElementById("signOutBtn");
 const userDetails = document.getElementById("userDetails");
+const reminderFrequency = document.getElementById("friendRemindFrequency");
+
 //========END==========
 //========START==========
 // Initialize Firebase
@@ -80,7 +82,7 @@ auth.onAuthStateChanged(async user => {
 //========START==========
 const resetState = () => {
     userInfo = {};
-    document.getElementById("friendsList").innerHTML = "";
+    friendsList.innerHTML = "";
 }
 //========END==========
 //========START==========
@@ -98,7 +100,7 @@ const showFriendsList = () => {
                 console.log("Added");
                 const markup = `
                     <li class="friendListFriend" id="${change.doc.id}">
-                        <a href="">${change.doc.data().name}</a>
+                        <a href="./friend">${change.doc.data().name}</a>
                         <button type="button" onclick="deleteFriend('${change.doc.id}')">x</button>
                     </li>
                     `;
@@ -123,7 +125,6 @@ const showFriendsList = () => {
 document.querySelector(".newFriendForm").addEventListener('submit', e => {
     e.preventDefault();
     // Get new friend input. 
-    const reminderFrequency = document.getElementById("friendRemindFrequency");
     console.warn(reminderFrequency.options[reminderFrequency.selectedIndex].value);
     userInfo.friend = {
         firstName: document.querySelector("#fName").value,
@@ -158,9 +159,3 @@ const deleteFriend = id => {
         });
 }
 //========END==========
-
-/* export const deleteLike = id => {
-    const el = document.querySelector(`.likes__link[href*="${id}"]`).parentElement;
-    if (el) el.parentElement.removeChild(el);
-}
- */
