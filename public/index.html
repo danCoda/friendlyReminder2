@@ -9,6 +9,7 @@
   <script src="/__/firebase/7.19.1/firebase-firestore.js"></script>
   <script src="/__/firebase/7.19.1/firebase-auth.js"></script>
   <script src="./app.js" type="text/javascript" defer></script>
+  <!-- <script src="./js/index.js" type="text/javascript" defer></script> -->
   <link rel="stylesheet" href="./style.css">
 
 </head>
@@ -42,6 +43,21 @@
 
   <section id="whenSignedOut">
     <button id="signInBtn">Sign in with Google</button>
+  </section>
+
+  <section id="friendSection" hidden>
+    <h1>Friend details</h1>
+    <div>Name: <span id="friend-name"></span></div>
+    <div>Last met: <span id="friend-lastMetDate"></span></div>
+    <div>Remind frequency: <span id="friend-remindFrequency"></span></div>
+    <div>Last activity: <span id="friend-lastActivity"></span></div>
+    <button id="friend-newActivity">Add new Memory</button>
+
+    <section id="friend-newActivitySection" hidden>
+      <textarea id="friend-newActivityInput" rows="4" placeholder="Describe your experience."></textarea>
+      <button id="friend-newActivity">Add new Memory</button>
+    </section>
+
   </section>
 
 </body>

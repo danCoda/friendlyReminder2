@@ -1,3 +1,5 @@
+alert("Hello Dan");
+
 //========START==========
 // Initialize Firebase
 const whenSignedIn = document.getElementById("whenSignedIn");
@@ -7,6 +9,7 @@ const friendsList = document.getElementById("friendsList");
 const signOutBtn = document.getElementById("signOutBtn");
 const userDetails = document.getElementById("userDetails");
 const reminderFrequency = document.getElementById("friendRemindFrequency");
+const friendSection = document.getElementById("friendSection");
 
 //========END==========
 //========START==========
@@ -46,7 +49,6 @@ auth.onAuthStateChanged(async user => {
     if (user) { // Logged in.
         // Check if they exist in the user collection. If not, 
         db.collection("user").doc(user.uid).get().then(userSnapshot => {
-            console.log("User exists? ", userSnapshot.exists);
             if (userSnapshot.exists) {
                 console.log("User exists!", userSnapshot.data());
                 userInfo = userSnapshot.data();
@@ -66,11 +68,11 @@ auth.onAuthStateChanged(async user => {
                         console.error("Error writing document: ", e);
                     });
             };
-
-            whenSignedIn.hidden = false;
-            whenSignedOut.hidden = true;
-            userDetails.innerHTML = `<h3>Hello ${user.displayName}!</h3>`;
         });
+
+        whenSignedIn.hidden = false;
+        whenSignedOut.hidden = true;
+        userDetails.innerHTML = `<h3>Hello ${user.displayName}!</h3>`;
     } else { // User is not logged in.
         whenSignedIn.hidden = true;
         whenSignedOut.hidden = false;
@@ -87,21 +89,20 @@ const resetState = () => {
 //========END==========
 //========START==========
 const showFriendsList = () => {
-    console.log("Heyo");
+    console.log("Showing friends list.");
     db.collection("user").doc(userInfo.uid).collection("friends").onSnapshot(friendsSnapshot => {
         let changes = friendsSnapshot.docChanges();
         console.log("CHanges: ", changes);
         window.changes = changes;
         changes.forEach(change => {
-            console.log(change.type);
-            console.log(change.doc.id);
+            console.log(change.doc.id, change.type);
 
             if (change.type === "added") {
-                console.log("Added");
                 const markup = `
                     <li class="friendListFriend" id="${change.doc.id}">
-                        <a href="./friend">${change.doc.data().name}</a>
-                        <button type="button" onclick="deleteFriend('${change.doc.id}')">x</button>
+                        <div>Friend: ${change.doc.data().name}
+                            <button type="button" onclick="deleteFriend('${change.doc.id}')">x</button>
+                        </div>
                     </li>
                     `;
                 friendsList.insertAdjacentHTML("beforeend", markup);
@@ -116,7 +117,10 @@ const showFriendsList = () => {
                 const friendNode = document.querySelector(`#${change.doc.id}`);
                 if (friendNode) friendNode.parentElement.removeChild(friendNode);
             }
+
+            setFriendsClickHandlers(change.doc.id, change.doc.data(), change.type !== "removed");
         });
+
     });
 }
 //========END==========
@@ -157,5 +161,43 @@ const deleteFriend = id => {
         }).catch(e => {
             console.error("Error removing document: ", e);
         });
+}
+//========END==========
+//========START==========
+// Click handlers for user's friends.
+const setFriendsClickHandlers = (friendID, friendDetails, isFriendAdded) => {
+    if (isFriendAdded) {
+        // Friend is added or modified, thus must have a click handler.
+        const friendElement = document.getElementById(friendID);
+        friendElement.onclick = () => {
+            console.log(friendID, friendDetails, isFriendAdded);
+
+            console.log(`Friend ${friendID} was clicked!`);
+            displayFriendSection(friendDetails);
+        }
+    } else {
+        // Remove click handler.
+    }
+}
+//========END==========
+//========START==========
+const displayFriendSection = friendDetails => {
+    const displayFriendDetails = () => {
+        document.getElementById("friend-name").textContent = friendDetails.name;
+        document.getElementById("friend-lastMetDate").textContent = friendDetails.lastMetDate.toDate();
+        document.getElementById("friend-remindFrequency").textContent = friendDetails.remindFrequency;
+        document.getElementById("friend-lastActivity").textContent = friendDetails.lastActivity;
+    }
+
+    console.log("Frienc clicked... ", friendDetails);
+    friendSection.hidden = false;
+    displayFriendDetails();
+
+    const addNewFriend = document.getElementById("friend-newActivity");
+    addNewFriend.onclick = () => {
+        const addNewFriendTextarea = document.getElementById("friend-newActivitySection");
+        addNewFriendTextarea.hidden = false;
+
+    };
 }
 //========END==========

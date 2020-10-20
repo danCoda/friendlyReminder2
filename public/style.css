@@ -1,4 +1,8 @@
 #whenSignedIn {
-    display: hidden;
+    
 }
 
+#friendSection {
+    
+    background-color: burlywood;
+}
