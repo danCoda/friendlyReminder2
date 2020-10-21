@@ -10,6 +10,9 @@ const signOutBtn = document.getElementById("signOutBtn");
 const userDetails = document.getElementById("userDetails");
 const reminderFrequency = document.getElementById("friendRemindFrequency");
 const friendSection = document.getElementById("friendSection");
+const seeActivitiesButton = document.getElementById("seeActivities");
+const activitiesSection = document.getElementById("activitiesSection");
+const activitiesList = document.getElementById("activities");
 
 //========END==========
 //========START==========
@@ -42,6 +45,54 @@ signOutBtn.onclick = () => {
     resetState();
     auth.signOut();
 }
+seeActivitiesButton.onclick = async () => {
+    const getActivity = (snapshot => {
+        let activities = [];
+        snapshot.forEach(activity => {
+            activities.push()
+        })
+    });
+
+    
+    activitiesSection.hidden = false;
+    console.log("Click...");
+    // Get activities. Default activities, and then custom activities.
+    let activities = await db.collection("defaultActivities").get();
+    activities = {...activities, ...await db.collection("user").doc(userInfo.uid).collection("customActivities").get()};
+    console.log("activities", typeof activities, activities);
+    
+
+
+    activities.forEach(activity => {
+        console.log(activity.id, activity.data());
+
+        const markup = `
+        <li id="${activity.id}">
+            <div>${activity.data().name}</div>
+            <div>${activity.data().description}</div>
+        </li>
+        `;
+        activitiesList.insertAdjacentHTML("beforeend", markup);
+
+    });
+
+    // Get default activities.
+    /* db.collection("defaultActivities").get().then(activitiesSnaphot => {
+    
+        activitiesSnaphot.forEach(activity => {
+            console.log(activity.id, activity.data());
+
+            const markup = `
+            <li id="${activity.id}">
+                <div>${activity.data().name}</div>
+                <div>${activity.data().description}</div>
+            </li>
+            `;
+            activitiesList.insertAdjacentHTML("beforeend", markup);
+
+        });
+    }); */
+}
 //========END==========
 //========START==========
 // Authenticate user.
@@ -72,17 +123,20 @@ auth.onAuthStateChanged(async user => {
 
         whenSignedIn.hidden = false;
         whenSignedOut.hidden = true;
+        seeActivitiesButton.hidden = false;
         userDetails.innerHTML = `<h3>Hello ${user.displayName}!</h3>`;
     } else { // User is not logged in.
-        whenSignedIn.hidden = true;
-        whenSignedOut.hidden = false;
-        userDetails.innerHTML = "";
         resetState();
     }
 });
 //========END==========
 //========START==========
 const resetState = () => {
+    whenSignedIn.hidden = true;
+    whenSignedOut.hidden = false;
+    activitiesSection.hidden = true;
+    seeActivitiesButton.hidden = true;
+    userDetails.innerHTML = "";
     userInfo = {};
     friendsList.innerHTML = "";
 }
@@ -201,3 +255,7 @@ const displayFriendSection = friendDetails => {
     };
 }
 //========END==========
+
+// Users should have a list of activities they enjoy doing. 
+// Users should be able to add new activities. 
+// Users should be able to choose between these activities when they add memories. 
