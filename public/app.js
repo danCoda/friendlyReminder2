@@ -46,52 +46,35 @@ signOutBtn.onclick = () => {
     auth.signOut();
 }
 seeActivitiesButton.onclick = async () => {
-    const getActivity = (snapshot => {
+    const getActivities = (snapshot => {
         let activities = [];
         snapshot.forEach(activity => {
-            activities.push()
-        })
+            activities.push({ 
+                id: activity.id, 
+                name: activity.data().name,
+                description: activity.data().description
+            });
+        });
+        return activities;
     });
 
-    
     activitiesSection.hidden = false;
-    console.log("Click...");
+
     // Get activities. Default activities, and then custom activities.
-    let activities = await db.collection("defaultActivities").get();
-    activities = {...activities, ...await db.collection("user").doc(userInfo.uid).collection("customActivities").get()};
-    console.log("activities", typeof activities, activities);
-    
+    let activities = await db.collection("defaultActivities").get().then(snapshot => getActivities(snapshot));
+    activities = activities.concat(await db.collection("user").doc(userInfo.uid).collection("customActivities").get().then(snapshot => getActivities(snapshot)));  
+    activities.sort((a, b) => a.name.localeCompare(b.name)); // Sort alphabetically. 
 
-
+    // Display.
     activities.forEach(activity => {
-        console.log(activity.id, activity.data());
-
         const markup = `
         <li id="${activity.id}">
-            <div>${activity.data().name}</div>
-            <div>${activity.data().description}</div>
+            <div>${activity.name}</div>
+            <div>${activity.description}</div>
         </li>
         `;
         activitiesList.insertAdjacentHTML("beforeend", markup);
-
     });
-
-    // Get default activities.
-    /* db.collection("defaultActivities").get().then(activitiesSnaphot => {
-    
-        activitiesSnaphot.forEach(activity => {
-            console.log(activity.id, activity.data());
-
-            const markup = `
-            <li id="${activity.id}">
-                <div>${activity.data().name}</div>
-                <div>${activity.data().description}</div>
-            </li>
-            `;
-            activitiesList.insertAdjacentHTML("beforeend", markup);
-
-        });
-    }); */
 }
 //========END==========
 //========START==========
