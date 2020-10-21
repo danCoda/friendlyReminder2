@@ -65,6 +65,15 @@
   <section id="activitiesSection" hidden>
     <h1>Available activities</h1>
     <button id="activity-newActivity">Add new Activity</button>
+    <div id="activitiy-addNew">
+      <form id="newActivityForm" hidden>
+        <label for="activityName">New Activity: </label>
+        <input type="text" id="activityName" name="activityName" placeholder="e.g. Eating" required><br>
+        <label for="activityDescription">Description:</label>
+        <input type="text" id="activityDescription" name="activityDescription" required><br>
+        <input type="submit" value="Submit">
+      </form>
+    </div>
     <ul id="activities"></ul>
   </section>
 

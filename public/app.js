@@ -11,6 +11,8 @@ const userDetails = document.getElementById("userDetails");
 const reminderFrequency = document.getElementById("friendRemindFrequency");
 const friendSection = document.getElementById("friendSection");
 const seeActivitiesButton = document.getElementById("seeActivities");
+const newActivityBtn = document.getElementById("activity-newActivity");
+const newActivityForm = document.getElementById("newActivityForm");
 const activitiesSection = document.getElementById("activitiesSection");
 const activitiesList = document.getElementById("activities");
 
@@ -49,8 +51,8 @@ seeActivitiesButton.onclick = async () => {
     const getActivities = (snapshot => {
         let activities = [];
         snapshot.forEach(activity => {
-            activities.push({ 
-                id: activity.id, 
+            activities.push({
+                id: activity.id,
                 name: activity.data().name,
                 description: activity.data().description
             });
@@ -62,7 +64,7 @@ seeActivitiesButton.onclick = async () => {
 
     // Get activities. Default activities, and then custom activities.
     let activities = await db.collection("defaultActivities").get().then(snapshot => getActivities(snapshot));
-    activities = activities.concat(await db.collection("user").doc(userInfo.uid).collection("customActivities").get().then(snapshot => getActivities(snapshot)));  
+    activities = activities.concat(await db.collection("user").doc(userInfo.uid).collection("customActivities").get().then(snapshot => getActivities(snapshot)));
     activities.sort((a, b) => a.name.localeCompare(b.name)); // Sort alphabetically. 
 
     // Display.
@@ -75,6 +77,9 @@ seeActivitiesButton.onclick = async () => {
         `;
         activitiesList.insertAdjacentHTML("beforeend", markup);
     });
+}
+newActivityBtn.onclick = () => {
+    newActivityForm.hidden = false;
 }
 //========END==========
 //========START==========
@@ -119,6 +124,7 @@ const resetState = () => {
     whenSignedOut.hidden = false;
     activitiesSection.hidden = true;
     seeActivitiesButton.hidden = true;
+    newActivityForm.hidden = true;
     userDetails.innerHTML = "";
     userInfo = {};
     friendsList.innerHTML = "";
@@ -185,7 +191,7 @@ document.querySelector(".newFriendForm").addEventListener('submit', e => {
         .catch(e => {
             console.error("Error adding document: ", e);
         });
-    console.log(userInfo.friend);
+    clearFields();
 });
 //========END==========
 //========START==========
@@ -238,7 +244,35 @@ const displayFriendSection = friendDetails => {
     };
 }
 //========END==========
+//========START==========
+const clearFields = () => {
+    // Friends:
+    document.querySelector("#fName").value = "";
+    document.querySelector("#lName").value = "";
+    document.querySelector("#lastMetDate").value = "";
+    reminderFrequency.selectedIndex = 0;
 
-// Users should have a list of activities they enjoy doing. 
+    // Activities:
+    document.querySelector("#activityName").value = "";
+    document.querySelector("#activityDescription").value = "";
+}
+//========END==========
+//========START==========
 // Users should be able to add new activities. 
+document.querySelector("#newActivityForm").addEventListener("submit", e => {
+    e.preventDefault();
+
+    db.collection("user").doc(userInfo.uid).collection("customActivities").add({
+            name: document.querySelector("#activityName").value,
+            description: document.querySelector("#activityDescription").value
+        }).then(docRef => {
+            console.log("Document written with ID: ", docRef.id);
+        })
+        .catch(e => {
+            console.error("Error adding document: ", e);
+        });
+    clearFields();
+});
+//========END==========
+
 // Users should be able to choose between these activities when they add memories. 
