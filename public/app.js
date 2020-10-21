@@ -60,15 +60,7 @@ seeActivitiesButton.onclick = async () => {
         return activities;
     });
 
-    activitiesSection.hidden = false;
-
-    // Get activities. Default activities, and then custom activities.
-    let activities = await db.collection("defaultActivities").get().then(snapshot => getActivities(snapshot));
-    activities = activities.concat(await db.collection("user").doc(userInfo.uid).collection("customActivities").get().then(snapshot => getActivities(snapshot)));
-    activities.sort((a, b) => a.name.localeCompare(b.name)); // Sort alphabetically. 
-
-    // Display.
-    activities.forEach(activity => {
+    const appendActivity = activity => {
         const markup = `
         <li id="${activity.id}">
             <div>${activity.name}</div>
@@ -76,6 +68,33 @@ seeActivitiesButton.onclick = async () => {
         </li>
         `;
         activitiesList.insertAdjacentHTML("beforeend", markup);
+    }
+
+    activitiesSection.hidden = false;
+
+    // Get activities. Default activities, and then custom activities.
+    let activities = await db.collection("defaultActivities").get().then(snapshot => getActivities(snapshot));
+    
+    // Trying to act on live changes.
+    db.collection("user").doc(userInfo.uid).collection("customActivities").onSnapshot(activitiesSnapshot => {
+        let changes = activitiesSnapshot.docChanges();
+        console.log("Changes to activities!");
+        changes.forEach(change => {
+            console.log(change.doc.id, change.type);
+            
+            if (change.type === "added") {
+                appendActivity(change.doc.data());
+            };
+        });
+
+    });
+
+    // Doesn't act on live changes.
+    //activities = activities.concat(await db.collection("user").doc(userInfo.uid).collection("customActivities").get().then(snapshot => getActivities(snapshot)));
+    
+    // Display.
+    activities.forEach(activity => {
+       appendActivity(activity);
     });
 }
 newActivityBtn.onclick = () => {
@@ -136,7 +155,6 @@ const showFriendsList = () => {
     db.collection("user").doc(userInfo.uid).collection("friends").onSnapshot(friendsSnapshot => {
         let changes = friendsSnapshot.docChanges();
         console.log("CHanges: ", changes);
-        window.changes = changes;
         changes.forEach(change => {
             console.log(change.doc.id, change.type);
 
