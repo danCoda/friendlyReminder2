@@ -48,17 +48,27 @@ signOutBtn.onclick = () => {
     auth.signOut();
 }
 seeActivitiesButton.onclick = async () => {
-    const getActivities = (snapshot => {
-        let activities = [];
-        snapshot.forEach(activity => {
-            activities.push({
-                id: activity.id,
-                name: activity.data().name,
-                description: activity.data().description
-            });
-        });
-        return activities;
-    });
+
+    const getActivities = snapshot => {
+        if (!snapshot.id) { // is retreived from DB.
+            let activities = [];
+
+            snapshot.forEach(activity => {
+                activities.push({
+                    id: activity.id,
+                    name: activity.data().name,
+                    description: activity.data().description
+                });
+            })
+            return activities;
+        } else { // is onSnapshot / change to DB.
+            return {
+                id: snapshot.id,
+                name: snapshot.data().name,
+                description: snapshot.data().description
+            };
+        }
+    };
 
     const appendActivity = activity => {
         const markup = `
@@ -74,27 +84,22 @@ seeActivitiesButton.onclick = async () => {
 
     // Get activities. Default activities, and then custom activities.
     let activities = await db.collection("defaultActivities").get().then(snapshot => getActivities(snapshot));
-    
+
     // Trying to act on live changes.
     db.collection("user").doc(userInfo.uid).collection("customActivities").onSnapshot(activitiesSnapshot => {
         let changes = activitiesSnapshot.docChanges();
         console.log("Changes to activities!");
         changes.forEach(change => {
-            console.log(change.doc.id, change.type);
-            
+
             if (change.type === "added") {
-                appendActivity(change.doc.data());
+                activities.push(getActivities(change.doc));
             };
+
         });
-
-    });
-
-    // Doesn't act on live changes.
-    //activities = activities.concat(await db.collection("user").doc(userInfo.uid).collection("customActivities").get().then(snapshot => getActivities(snapshot)));
-    
-    // Display.
-    activities.forEach(activity => {
-       appendActivity(activity);
+        // Display.
+        activities.forEach(activity => {
+            if (!document.getElementById(activity.id)) appendActivity(activity);
+        });
     });
 }
 newActivityBtn.onclick = () => {
