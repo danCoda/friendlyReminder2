@@ -15,7 +15,10 @@ const newActivityBtn = document.getElementById("activity-newActivity");
 const newActivityForm = document.getElementById("newActivityForm");
 const activitiesSection = document.getElementById("activitiesSection");
 const activitiesList = document.getElementById("activities");
-
+const addNewFriendTextarea = document.getElementById("friend-newActivitySection");
+const newActivityDate = document.querySelector("#friend-newActivityDate");
+const newActivityLocation = document.querySelector("#friend-newActivityLocation");
+const newActivityDescription = document.querySelector("#friend-newActivityWhatHappened");
 //========END==========
 //========START==========
 // Initialize Firebase
@@ -39,6 +42,7 @@ const googleLoginProvider = new firebase.auth.GoogleAuthProvider();
 //========START==========
 // State information. 
 let userInfo = {};
+let selectedFriendID = "";
 //========END==========
 //========START==========
 // Click handlers.
@@ -236,9 +240,7 @@ const setFriendsClickHandlers = (friendID, friendDetails, isFriendAdded) => {
         // Friend is added or modified, thus must have a click handler.
         const friendElement = document.getElementById(friendID);
         friendElement.onclick = () => {
-            console.log(friendID, friendDetails, isFriendAdded);
-
-            console.log(`Friend ${friendID} was clicked!`);
+            selectedFriendID = friendID;
             displayFriendSection(friendDetails);
         }
     } else {
@@ -261,9 +263,7 @@ const displayFriendSection = friendDetails => {
 
     const addNewFriend = document.getElementById("friend-newActivity");
     addNewFriend.onclick = () => {
-        const addNewFriendTextarea = document.getElementById("friend-newActivitySection");
         addNewFriendTextarea.hidden = false;
-
     };
 }
 //========END==========
@@ -275,6 +275,9 @@ const clearFields = () => {
     document.querySelector("#lastMetDate").value = "";
     reminderFrequency.selectedIndex = 0;
 
+    newActivityDate.value = "";
+    newActivityLocation.value = "";
+    newActivityDescription.value = "";
     // Activities:
     document.querySelector("#activityName").value = "";
     document.querySelector("#activityDescription").value = "";
@@ -285,6 +288,7 @@ const clearFields = () => {
 document.querySelector("#newActivityForm").addEventListener("submit", e => {
     e.preventDefault();
 
+    // Store new activity.
     db.collection("user").doc(userInfo.uid).collection("customActivities").add({
             name: document.querySelector("#activityName").value,
             description: document.querySelector("#activityDescription").value
@@ -295,6 +299,25 @@ document.querySelector("#newActivityForm").addEventListener("submit", e => {
             console.error("Error adding document: ", e);
         });
     clearFields();
+});
+//========END==========
+//========START==========
+// Users should be able to add new memories. 
+document.querySelector("#friend-newActivitySection").addEventListener("submit", e => {
+    e.preventDefault();
+    console.log("Hello");
+    // Store new memory.
+    db.collection("user").doc(userInfo.uid).collection("friends").doc(selectedFriendID).collection("memories").add({
+        date: new Date(newActivityDate.value),
+        location: newActivityLocation.value,
+        description: newActivityDescription.value
+    }).then(docRef => {
+        console.log("Document written with ID: ", docRef.id);
+    })
+    .catch(e => {
+        console.error("Error adding document: ", e);
+    });
+clearFields();
 });
 //========END==========
 
