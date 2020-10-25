@@ -18,6 +18,7 @@ const activitiesList = document.getElementById("activities");
 const addNewFriendTextarea = document.getElementById("friend-newActivitySection");
 const newActivityDate = document.querySelector("#friend-newActivityDate");
 const newActivityLocation = document.querySelector("#friend-newActivityLocation");
+const newActivitySelection = document.querySelector("#friend-newActivitySelection");
 const newActivityDescription = document.querySelector("#friend-newActivityWhatHappened");
 //========END==========
 //========START==========
@@ -41,19 +42,15 @@ const googleLoginProvider = new firebase.auth.GoogleAuthProvider();
 //========END==========
 //========START==========
 // State information. 
-let userInfo = {};
-let selectedFriendID = "";
+let state = {
+    userInfo: {},
+    selectedFriendID: "",
+    activities: []
+}
 //========END==========
 //========START==========
-// Click handlers.
-signInBtn.onclick = () => auth.signInWithPopup(googleLoginProvider);
-signOutBtn.onclick = () => {
-    resetState();
-    auth.signOut();
-}
-seeActivitiesButton.onclick = async () => {
-
-    const getActivities = snapshot => {
+const getActivities = async () => {
+    const filterActivities = snapshot => {
         if (!snapshot.id) { // is retreived from DB.
             let activities = [];
 
@@ -74,20 +71,40 @@ seeActivitiesButton.onclick = async () => {
         }
     };
 
-    const appendActivity = activity => {
-        const markup = `
-        <li id="${activity.id}">
-            <div>${activity.name}</div>
-            <div>${activity.description}</div>
-        </li>
-        `;
-        activitiesList.insertAdjacentHTML("beforeend", markup);
+    //HAVING TROUBLE WITH ONSNAPSHOT ASYNC STUFF.
+    const getCustomActivities = async () => {
+
+        let changes = [];
+        await db.collection("user").doc(state.userInfo.uid).collection("customActivities").onSnapshot(activitiesSnapshot => {
+            activitiesSnapshot.docChanges().forEach(change => {
+                changes.push({
+                    Greet: "Hello"
+                });
+            });
+        });
+
+        console.log("1.5. Changes array: ", changes);
+        return changes;
+
+
     }
 
-    activitiesSection.hidden = false;
+    let activities = await db.collection("defaultActivities").get().then(snapshot => filterActivities(snapshot));
+    console.log("1. Activities: ", activities);
 
+    let moreActivities = await getCustomActivities();
+
+    console.log("2. moreActivities:", moreActivities);
+    //activities = activities.concat(moreActivities);
+
+    console.warn("3. Returning all activities: ", moreActivities);
+    return moreActivities || [];
+    //return [];
+
+
+    // OLD CODE: =---=
     // Get activities. Default activities, and then custom activities.
-    let activities = await db.collection("defaultActivities").get().then(snapshot => getActivities(snapshot));
+    /* let activities = await db.collection("defaultActivities").get().then(snapshot => getActivities(snapshot));
 
     // Trying to act on live changes.
     db.collection("user").doc(userInfo.uid).collection("customActivities").onSnapshot(activitiesSnapshot => {
@@ -104,10 +121,49 @@ seeActivitiesButton.onclick = async () => {
         activities.forEach(activity => {
             if (!document.getElementById(activity.id)) appendActivity(activity);
         });
+    }); */
+
+
+
+}
+
+//========END==========
+//========START==========
+// Click handlers.
+signInBtn.onclick = () => auth.signInWithPopup(googleLoginProvider);
+signOutBtn.onclick = () => {
+    resetState();
+    auth.signOut();
+}
+seeActivitiesButton.onclick = async () => {
+    const appendActivity = activity => {
+        const markup = `
+        <li id="${activity.id}">
+            <div>${activity.name}</div>
+            <div>${activity.description}</div>
+        </li>
+        `;
+        activitiesList.insertAdjacentHTML("beforeend", markup);
+    }
+
+    activitiesSection.hidden = false;
+    let activities = await getActivities();
+
+    console.warn("Drawing activities now");
+    // Display.
+    activities.forEach(activity => {
+        if (!document.getElementById(activity.id)) appendActivity(activity);
     });
 }
 newActivityBtn.onclick = () => {
     newActivityForm.hidden = false;
+
+    // Load activities for Select menu.
+    //newActivitySelection
+
+
+
+
 }
 //========END==========
 //========START==========
@@ -118,8 +174,8 @@ auth.onAuthStateChanged(async user => {
         db.collection("user").doc(user.uid).get().then(userSnapshot => {
             if (userSnapshot.exists) {
                 console.log("User exists!", userSnapshot.data());
-                userInfo = userSnapshot.data();
-                userInfo.uid = user.uid;
+                state.userInfo = userSnapshot.data();
+                state.userInfo.uid = user.uid;
                 showFriendsList();
             } else {
                 console.log("User doesn't exist!");
@@ -128,8 +184,8 @@ auth.onAuthStateChanged(async user => {
                         lastLoginDate: new Date()
                     }).then(() => {
                         console.log("User successfully written to user collection!");
-                        userInfo.uid = user.uid;
-                        Object.assign(userInfo, userSnapshot.data());
+                        state.userInfo.uid = user.uid;
+                        Object.assign(state.userInfo, userSnapshot.data());
                     })
                     .catch(e => {
                         console.error("Error writing document: ", e);
@@ -154,14 +210,14 @@ const resetState = () => {
     seeActivitiesButton.hidden = true;
     newActivityForm.hidden = true;
     userDetails.innerHTML = "";
-    userInfo = {};
+    state.userInfo = {};
     friendsList.innerHTML = "";
 }
 //========END==========
 //========START==========
 const showFriendsList = () => {
     console.log("Showing friends list.");
-    db.collection("user").doc(userInfo.uid).collection("friends").onSnapshot(friendsSnapshot => {
+    db.collection("user").doc(state.userInfo.uid).collection("friends").onSnapshot(friendsSnapshot => {
         let changes = friendsSnapshot.docChanges();
         console.log("CHanges: ", changes);
         changes.forEach(change => {
@@ -200,17 +256,17 @@ document.querySelector(".newFriendForm").addEventListener('submit', e => {
     e.preventDefault();
     // Get new friend input. 
     console.warn(reminderFrequency.options[reminderFrequency.selectedIndex].value);
-    userInfo.friend = {
+    state.userInfo.friend = {
         firstName: document.querySelector("#fName").value,
         lastName: document.querySelector("#lName").value,
         lastMetDate: document.querySelector("#lastMetDate").value,
         remindFrequency: reminderFrequency.options[reminderFrequency.selectedIndex].value
     }
     // Store new friend. 
-    db.collection("user").doc(userInfo.uid).collection("friends").add({
-            name: `${userInfo.friend.firstName} ${userInfo.friend.lastName}`,
-            lastMetDate: new Date(userInfo.friend.lastMetDate),
-            remindFrequency: userInfo.friend.remindFrequency
+    db.collection("user").doc(state.userInfo.uid).collection("friends").add({
+            name: `${state.userInfo.friend.firstName} ${state.userInfo.friend.lastName}`,
+            lastMetDate: new Date(state.userInfo.friend.lastMetDate),
+            remindFrequency: state.userInfo.friend.remindFrequency
         })
         .then(docRef => {
             console.log("Document written with ID: ", docRef.id);
@@ -225,7 +281,7 @@ document.querySelector(".newFriendForm").addEventListener('submit', e => {
 // Delete friend.
 const deleteFriend = id => {
     // Delete from Firebase. 
-    db.collection("user").doc(userInfo.uid).collection("friends").doc(id).delete()
+    db.collection("user").doc(state.userInfo.uid).collection("friends").doc(id).delete()
         .then(() => {
             console.log("Document successfully deleted!");
         }).catch(e => {
@@ -240,7 +296,7 @@ const setFriendsClickHandlers = (friendID, friendDetails, isFriendAdded) => {
         // Friend is added or modified, thus must have a click handler.
         const friendElement = document.getElementById(friendID);
         friendElement.onclick = () => {
-            selectedFriendID = friendID;
+            state.selectedFriendID = friendID;
             displayFriendSection(friendDetails);
         }
     } else {
@@ -289,7 +345,7 @@ document.querySelector("#newActivityForm").addEventListener("submit", e => {
     e.preventDefault();
 
     // Store new activity.
-    db.collection("user").doc(userInfo.uid).collection("customActivities").add({
+    db.collection("user").doc(state.userInfo.uid).collection("customActivities").add({
             name: document.querySelector("#activityName").value,
             description: document.querySelector("#activityDescription").value
         }).then(docRef => {
@@ -307,17 +363,17 @@ document.querySelector("#friend-newActivitySection").addEventListener("submit", 
     e.preventDefault();
     console.log("Hello");
     // Store new memory.
-    db.collection("user").doc(userInfo.uid).collection("friends").doc(selectedFriendID).collection("memories").add({
-        date: new Date(newActivityDate.value),
-        location: newActivityLocation.value,
-        description: newActivityDescription.value
-    }).then(docRef => {
-        console.log("Document written with ID: ", docRef.id);
-    })
-    .catch(e => {
-        console.error("Error adding document: ", e);
-    });
-clearFields();
+    db.collection("user").doc(state.userInfo.uid).collection("friends").doc(state.selectedFriendID).collection("memories").add({
+            date: new Date(newActivityDate.value),
+            location: newActivityLocation.value,
+            description: newActivityDescription.value
+        }).then(docRef => {
+            console.log("Document written with ID: ", docRef.id);
+        })
+        .catch(e => {
+            console.error("Error adding document: ", e);
+        });
+    clearFields();
 });
 //========END==========
 
