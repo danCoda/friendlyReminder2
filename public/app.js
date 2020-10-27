@@ -50,81 +50,10 @@ let state = {
 //========END==========
 //========START==========
 const getActivities = async () => {
-    const filterActivities = snapshot => {
-        if (!snapshot.id) { // is retreived from DB.
-            let activities = [];
-
-            snapshot.forEach(activity => {
-                activities.push({
-                    id: activity.id,
-                    name: activity.data().name,
-                    description: activity.data().description
-                });
-            })
-            return activities;
-        } else { // is onSnapshot / change to DB.
-            return {
-                id: snapshot.id,
-                name: snapshot.data().name,
-                description: snapshot.data().description
-            };
-        }
-    };
-
-    //HAVING TROUBLE WITH ONSNAPSHOT ASYNC STUFF.
-    const getCustomActivities = async () => {
-
-        let changes = [];
-        await db.collection("user").doc(state.userInfo.uid).collection("customActivities").onSnapshot(activitiesSnapshot => {
-            activitiesSnapshot.docChanges().forEach(change => {
-                changes.push({
-                    Greet: "Hello"
-                });
-            });
-        });
-
-        console.log("1.5. Changes array: ", changes);
-        return changes;
-
-
-    }
-
+    // Get default and custom activities. 
     let activities = await db.collection("defaultActivities").get().then(snapshot => filterActivities(snapshot));
-    console.log("1. Activities: ", activities);
-
-    let moreActivities = await getCustomActivities();
-
-    console.log("2. moreActivities:", moreActivities);
-    //activities = activities.concat(moreActivities);
-
-    console.warn("3. Returning all activities: ", moreActivities);
-    return moreActivities || [];
-    //return [];
-
-
-    // OLD CODE: =---=
-    // Get activities. Default activities, and then custom activities.
-    /* let activities = await db.collection("defaultActivities").get().then(snapshot => getActivities(snapshot));
-
-    // Trying to act on live changes.
-    db.collection("user").doc(userInfo.uid).collection("customActivities").onSnapshot(activitiesSnapshot => {
-        let changes = activitiesSnapshot.docChanges();
-        console.log("Changes to activities!");
-        changes.forEach(change => {
-
-            if (change.type === "added") {
-                activities.push(getActivities(change.doc));
-            };
-
-        });
-        // Display.
-        activities.forEach(activity => {
-            if (!document.getElementById(activity.id)) appendActivity(activity);
-        });
-    }); */
-
-
-
+    activities = activities.concat(await db.collection("user").doc(state.userInfo.uid).collection("customActivities").get().then(snapshot => filterActivities(snapshot)));
+    return activities || [];
 }
 
 //========END==========
@@ -136,35 +65,64 @@ signOutBtn.onclick = () => {
     auth.signOut();
 }
 seeActivitiesButton.onclick = async () => {
-    const appendActivity = activity => {
-        const markup = `
-        <li id="${activity.id}">
-            <div>${activity.name}</div>
-            <div>${activity.description}</div>
-        </li>
-        `;
-        activitiesList.insertAdjacentHTML("beforeend", markup);
-    }
-
     activitiesSection.hidden = false;
-    let activities = await getActivities();
-
-    console.warn("Drawing activities now");
+    state.activities = await getActivities();
     // Display.
-    activities.forEach(activity => {
+    state.activities.forEach(activity => {
         if (!document.getElementById(activity.id)) appendActivity(activity);
     });
 }
 newActivityBtn.onclick = () => {
     newActivityForm.hidden = false;
+    // Set a listener for customActivity changes. 
+    db.collection("user").doc(state.userInfo.uid).collection("customActivities").onSnapshot(snapshot => {
+        snapshot.docChanges().forEach(change => {
+            if (change.type === "added" && !state.activities.map(activity => activity.id).includes(change.doc.id)) {
+                const newActivity = filterActivities(change.doc);
+                state.activities.push(newActivity);
+                appendActivity(newActivity);
+            } else if (change.type === "removed") {
 
-    // Load activities for Select menu.
-    //newActivitySelection
-
-
-
-
+            }
+        });
+    });
 }
+//========END==========
+//========START==========
+// Append activity to DOM.
+const appendActivity = activity => {
+    console.warn("new activity: ", activity);
+    const markup = `
+    <li id="${activity.id}">
+        <div>${activity.name}</div>
+        <div>${activity.description}</div>
+    </li>
+    `;
+    activitiesList.insertAdjacentHTML("beforeend", markup);
+}
+//========END==========
+//========START==========
+// Append activity from snapshot.
+const filterActivities = snapshot => {
+    if (!snapshot.id) { // is retreived from DB.
+        let activities = [];
+
+        snapshot.forEach(activity => {
+            activities.push({
+                id: activity.id,
+                name: activity.data().name,
+                description: activity.data().description
+            });
+        })
+        return activities;
+    } else { // is onSnapshot / change to DB.
+        return {
+            id: snapshot.id,
+            name: snapshot.data().name,
+            description: snapshot.data().description
+        };
+    }
+};
 //========END==========
 //========START==========
 // Authenticate user.
