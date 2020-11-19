@@ -15,7 +15,8 @@ const newActivityBtn = document.getElementById("activity-newActivity");
 const newActivityForm = document.getElementById("newActivityForm");
 const activitiesSection = document.getElementById("activitiesSection");
 const activitiesList = document.getElementById("activities");
-const addNewFriendTextarea = document.getElementById("friend-newActivitySection");
+const addNewFriendActivity = document.getElementById("friend-newActivity");
+const addNewFriendMemorySection = document.getElementById("friend-newActivitySection");
 const newActivityDate = document.querySelector("#friend-newActivityDate");
 const newActivityLocation = document.querySelector("#friend-newActivityLocation");
 const newActivitySelection = document.querySelector("#friend-newActivitySelection");
@@ -50,6 +51,7 @@ let state = {
 //========END==========
 //========START==========
 const getActivities = async () => {
+    console.log("Getting activities..");
     // Get default and custom activities. 
     let activities = await db.collection("defaultActivities").get().then(snapshot => filterActivities(snapshot));
     activities = activities.concat(await db.collection("user").doc(state.userInfo.uid).collection("customActivities").get().then(snapshot => filterActivities(snapshot)));
@@ -271,13 +273,31 @@ const displayFriendSection = friendDetails => {
         document.getElementById("friend-lastActivity").textContent = friendDetails.lastActivity;
     }
 
-    console.log("Frienc clicked... ", friendDetails);
-    friendSection.hidden = false;
-    displayFriendDetails();
+    const loadActivityDropdown = async () => {
+        // Prepare activity dropdown (select) for adding new memory. 
+        if (!state.activities.length) state.activities = await getActivities();
 
-    const addNewFriend = document.getElementById("friend-newActivity");
-    addNewFriend.onclick = () => {
-        addNewFriendTextarea.hidden = false;
+        // Remove existing options (to renew options). 
+        while (newActivitySelection.firstChild) {
+            newActivitySelection.firstChild.remove();
+        }
+
+        state.activities.forEach(activity => {
+            // Append activity to dropdown. 
+            let option = document.createElement("option");
+            option.setAttribute("value", activity.name);
+            const text = document.createTextNode(activity.name);
+            option.appendChild(text);
+            newActivitySelection.appendChild(option);
+        });
+    }
+
+    loadActivityDropdown();
+    displayFriendDetails();
+    friendSection.hidden = false;
+
+    addNewFriendActivity.onclick = () => {
+        addNewFriendMemorySection.hidden = false;
     };
 }
 //========END==========
@@ -319,14 +339,14 @@ document.querySelector("#newActivityForm").addEventListener("submit", e => {
 // Users should be able to add new memories. 
 document.querySelector("#friend-newActivitySection").addEventListener("submit", e => {
     e.preventDefault();
-    console.log("Hello");
     // Store new memory.
     db.collection("user").doc(state.userInfo.uid).collection("friends").doc(state.selectedFriendID).collection("memories").add({
             date: new Date(newActivityDate.value),
             location: newActivityLocation.value,
+            activity: newActivitySelection.value,
             description: newActivityDescription.value
         }).then(docRef => {
-            console.log("Document written with ID: ", docRef.id);
+            console.log("Document written with ID: ", docRef.data());
         })
         .catch(e => {
             console.error("Error adding document: ", e);
