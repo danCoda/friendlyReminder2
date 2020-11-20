@@ -20,7 +20,9 @@
   <section id="whenSignedIn">
     <div id="userDetails"></div>
     <button id="signOutBtn">Sign out</button>
+    <h2>Friends:</h2>
     <ul id="friendsList"></ul>
+    <h2>Add new friend:</h2>
     <form class="newFriendForm">
       <label for="fname">First name:</label>
       <input type="text" id="fName" name="fname" value="John" required><br>
@@ -45,6 +47,10 @@
     <button id="signInBtn">Sign in with Google</button>
   </section>
 
+  <section id="reminderSection">
+    <ul id="reminderList"></ul>
+  </section>
+
   <section id="friendSection" hidden>
     <h1>Friend details</h1>
     <div>Name: <span id="friend-name"></span></div>
@@ -58,14 +64,16 @@
       <input type="date" id="friend-newActivityDate" name="friend-newActivityDate" required><br>
 
       <label for="friend-newActivityLocation">Location:</label>
-      <input type="text" id="friend-newActivityLocation" name="friend-newActivityLocation" placeholder="Where did you guys meet?" required><br>
+      <input type="text" id="friend-newActivityLocation" name="friend-newActivityLocation"
+        placeholder="Where did you guys meet?" required><br>
 
       <label for="friend-newActivitySelection">What did you guys do (activity)?</label>
-      <select name="friend-newActivitySelection" id="friend-newActivitySelection">        
+      <select name="friend-newActivitySelection" id="friend-newActivitySelection">
       </select>
 
       <label for="friend-newActivityWhatHappened">What happened?</label>
-      <input type="text" id="friend-newActivityWhatHappened" name="friend-newActivityWhatHappened" placeholder="Write your memory." required><br>
+      <input type="text" id="friend-newActivityWhatHappened" name="friend-newActivityWhatHappened"
+        placeholder="Write your memory." required><br>
 
       <input type="submit" value="Submit">
     </form>

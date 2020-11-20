@@ -21,6 +21,7 @@ const newActivityDate = document.querySelector("#friend-newActivityDate");
 const newActivityLocation = document.querySelector("#friend-newActivityLocation");
 const newActivitySelection = document.querySelector("#friend-newActivitySelection");
 const newActivityDescription = document.querySelector("#friend-newActivityWhatHappened");
+const friendReminderList = document.querySelector("#reminderList");
 //========END==========
 //========START==========
 // Initialize Firebase
@@ -46,12 +47,12 @@ const googleLoginProvider = new firebase.auth.GoogleAuthProvider();
 let state = {
     userInfo: {},
     selectedFriendID: "",
-    activities: []
+    activities: [],
+    friends: []
 }
 //========END==========
 //========START==========
 const getActivities = async () => {
-    console.log("Getting activities..");
     // Get default and custom activities. 
     let activities = await db.collection("defaultActivities").get().then(snapshot => filterActivities(snapshot));
     activities = activities.concat(await db.collection("user").doc(state.userInfo.uid).collection("customActivities").get().then(snapshot => filterActivities(snapshot)));
@@ -137,6 +138,7 @@ auth.onAuthStateChanged(async user => {
                 state.userInfo = userSnapshot.data();
                 state.userInfo.uid = user.uid;
                 showFriendsList();
+                loadReminders();
             } else {
                 console.log("User doesn't exist!");
                 db.collection("user").doc(user.uid).set({
@@ -353,6 +355,58 @@ document.querySelector("#friend-newActivitySection").addEventListener("submit", 
         });
     clearFields();
 });
+//========END========
+//========START==========
+// Users should be able to get reminders on the homescreen. 
+const loadReminders = () => {
+    console.log("HEllo!");
+    // For each friend, 
+    db.collection("user").doc(state.userInfo.uid).collection("friends").get().then(friends => {
+        friends.forEach(friend => {
+            console.log("Friends: ", friend.data());
+
+            // See their lastMetDate and remindFreqeuency. 
+            const lastMetDate = (friend.data().lastMetDate.toDate());
+
+            let markup = "<ol>";
+            
+            switch (friend.data().remindFrequency) {
+                case "daily":
+                    // If it's a daily reminder, they should be reminded of them daily. 
+                    markup += `Daily reminder of ${friend.data().name}! Last met on ${lastMetDate}`;
+                    console.log(`Should be reminded of ${friend.data().name} daily`);
+                    break;
+                case "weekly":
+                    console.log(`Should be reminded of ${friend.data().name} weekly`);
+                    break;
+                case "fortnightly":
+                    console.log(`Should be reminded of ${friend.data().name} fortnightly`);
+                    break;
+                case "monthly":
+                    console.log(`Should be reminded of ${friend.data().name} monthly`);
+                    break;
+            }
+
+            friendReminderList.insertAdjacentHTML("beforeend", markup);
+        });
+    });
+
+
+    // If it's a weekly reminder, they should be reminded of them every week. "It's been a week since last contact; say hi to them!" After "Contacted", remind them after a week. 
+    //      After "Contacted", give them an option to add a memory. 
+    //      If ignored, warn them: "You are overdue to saying hi to them! Say hi to them!".
+
+
+
+
+    // If it's a monthly reminder, they should be reminded of them each month. "It's been a month since last contact; say hi to them!" 
+
+}
+
 //========END==========
 
-// Users should be able to choose between these activities when they add memories. 
+// Users should be able to specify what day they should be reminded of their friend. If weekly, what day. If montly, what date...
+
+// Users should be able to upload images for their memories. 
+
+// Users should be able to see their past memories with friends. 
