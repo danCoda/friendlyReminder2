@@ -9,6 +9,8 @@ const friendsList = document.getElementById("friendsList");
 const signOutBtn = document.getElementById("signOutBtn");
 const userDetails = document.getElementById("userDetails");
 const reminderFrequency = document.getElementById("friendRemindFrequency");
+const reminderFrequencyDay = document.getElementById("friendReminderSpecifyDay");
+const reminderFrequencyDate = document.getElementById("friendReminderSpecifyDate");
 const friendSection = document.getElementById("friendSection");
 const seeActivitiesButton = document.getElementById("seeActivities");
 const newActivityBtn = document.getElementById("activity-newActivity");
@@ -217,19 +219,24 @@ const showFriendsList = () => {
 document.querySelector(".newFriendForm").addEventListener('submit', e => {
     e.preventDefault();
     // Get new friend input. 
-    console.warn(reminderFrequency.options[reminderFrequency.selectedIndex].value);
-    state.userInfo.friend = {
-        firstName: document.querySelector("#fName").value,
-        lastName: document.querySelector("#lName").value,
+    state.userInfo.newFriend = {
+        name: `${document.querySelector("#fName").value} ${document.querySelector("#lName").value}`,
         lastMetDate: document.querySelector("#lastMetDate").value,
         remindFrequency: reminderFrequency.options[reminderFrequency.selectedIndex].value
     }
+    // Get specific frequency details.
+    switch (reminderFrequency.value) {
+        case "daily":
+            // What day?
+            state.userInfo.newFriend.reminderSpecification = Number(reminderFrequencyDay.value);
+            break;
+        case "monthly":
+            // What date?
+            state.userInfo.newFriend.reminderSpecification = Number(reminderFrequencyDate.value);
+            break;
+    }
     // Store new friend. 
-    db.collection("user").doc(state.userInfo.uid).collection("friends").add({
-            name: `${state.userInfo.friend.firstName} ${state.userInfo.friend.lastName}`,
-            lastMetDate: new Date(state.userInfo.friend.lastMetDate),
-            remindFrequency: state.userInfo.friend.remindFrequency
-        })
+    db.collection("user").doc(state.userInfo.uid).collection("friends").add(state.userInfo.newFriend)
         .then(docRef => {
             console.log("Document written with ID: ", docRef.id);
         })
@@ -357,37 +364,57 @@ document.querySelector("#friend-newActivitySection").addEventListener("submit", 
 });
 //========END========
 //========START==========
+const removeElement = (el) => {
+    const removeThis = document.querySelector(el);
+    removeThis.remove();
+}
+//========END========
+//========START==========
 // Users should be able to get reminders on the homescreen. 
 const loadReminders = () => {
     console.log("HEllo!");
     // For each friend, 
     db.collection("user").doc(state.userInfo.uid).collection("friends").get().then(friends => {
         friends.forEach(friend => {
-            console.log("Friends: ", friend.data());
+            let needsReminding = false; // Flag to see if reminder needs to be given.
+            console.log("Friend: ", friend.data());
 
             // See their lastMetDate and remindFreqeuency. 
-            const lastMetDate = (friend.data().lastMetDate.toDate());
+            const lastMetDate = new Date(friend.data().lastMetDate);
+            const daysSinceLastMet = Math.floor((new Date() - lastMetDate) / (1000 * 60 * 60 * 24));
+            console.log("Days since last met: ", daysSinceLastMet);
+            let markup = `<ol id="reminderFor-${friend.id}">`;
 
-            let markup = "<ol>";
-            
             switch (friend.data().remindFrequency) {
                 case "daily":
                     // If it's a daily reminder, they should be reminded of them daily. 
+                    needsReminding = true;
                     markup += `Daily reminder of ${friend.data().name}! Last met on ${lastMetDate}`;
-                    console.log(`Should be reminded of ${friend.data().name} daily`);
                     break;
                 case "weekly":
-                    console.log(`Should be reminded of ${friend.data().name} weekly`);
                     break;
                 case "fortnightly":
-                    console.log(`Should be reminded of ${friend.data().name} fortnightly`);
                     break;
                 case "monthly":
-                    console.log(`Should be reminded of ${friend.data().name} monthly`);
+                    if (daysSinceLastMet === 30) {
+                        needsReminding = true;
+                        markup += `Montly reminder of ${friend.data().name}! Last met on ${lastMetDate}`;
+                    } else if (daysSinceLastMet > 30) {
+                        needsReminding = true;
+                        markup += `Catch up with your mate ${friend.data().name}! Haven't seen him in over a month, last met on ${lastMetDate}`;
+                    }
                     break;
             }
 
-            friendReminderList.insertAdjacentHTML("beforeend", markup);
+            if (needsReminding) {
+                // Add Memory button:
+                markup += `<button type="button" onclick="">Done - Add memory</button>`;
+                // Ignore button:
+                markup += `<button type="button" onclick="removeElement('#reminderFor-${friend.id}')">Ignore</button>`; // Closing tag.
+                // Closeing tab:
+                markup += "</ol>";
+                friendReminderList.insertAdjacentHTML("beforeend", markup);
+            }
         });
     });
 

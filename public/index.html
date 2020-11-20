@@ -38,7 +38,23 @@
         <option value="quarterly">Quarterly (3 months)</option>
         <option value="biannually">Biannually</option>
       </select>
-      <br><br>
+      <br>
+      
+      <label for="specifyingDay">What day?</label>
+      <select name="specifyingDay" id="friendReminderSpecifyDay">
+        <option value="1">Monday</option>
+        <option value="2">Tuesday</option>
+        <option value="3">Wednesday</option>
+        <option value="4">Thursday</option>
+        <option value="5">Friday</option>
+        <option value="6">Saturday</option>
+        <option value="7">Sunday</option>
+      </select>
+      
+      <label for="specifyingDate">What date?</label>
+      <input type="number" min="1" max="30" id="friendReminderSpecifyDate" name="specifyingDate"><br>
+
+      <br>
       <input type="submit" value="Submit">
     </form>
   </section>
