@@ -20,9 +20,9 @@
   <section id="whenSignedIn">
     <div id="userDetails"></div>
     <button id="signOutBtn">Sign out</button>
-    <h2>Friends:</h2>
+    <h2>Fellas:</h2>
     <ul id="friendsList"></ul>
-    <h2>Add new friend:</h2>
+    <h2>Add fella:</h2>
     <form class="newFriendForm">
       <label for="fname">First name:</label>
       <input type="text" id="fName" name="fname" value="John" required><br>
@@ -64,7 +64,13 @@
   </section>
 
   <section id="reminderSection">
-    <ul id="reminderList"></ul>
+    Todos:
+
+    <ul hidden id="dailyReminder"></ul>
+    <ul hidden id="weeklyReminder"></ul>
+    <ul hidden id="fortnightlyReminder"></ul>
+    <ul hidden id="monthlyReminder"></ul>
+    
   </section>
 
   <section id="friendSection" hidden>

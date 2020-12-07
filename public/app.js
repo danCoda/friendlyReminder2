@@ -1,5 +1,7 @@
-alert("Hello Dan");
-
+//========START==========
+// Dependencies. 
+//import prettyMS from 'pretty-ms';
+//========END==========
 //========START==========
 // Initialize Firebase
 const whenSignedIn = document.getElementById("whenSignedIn");
@@ -23,7 +25,10 @@ const newActivityDate = document.querySelector("#friend-newActivityDate");
 const newActivityLocation = document.querySelector("#friend-newActivityLocation");
 const newActivitySelection = document.querySelector("#friend-newActivitySelection");
 const newActivityDescription = document.querySelector("#friend-newActivityWhatHappened");
-const friendReminderList = document.querySelector("#reminderList");
+const dailyReminderList = document.querySelector("#dailyReminder");
+const weeklyReminderList = document.querySelector("#weeklyReminder");
+const fortnightlyReminderList = document.querySelector("#fortnightlyReminder");
+const monthlyReminderList = document.querySelector("#monthlyReminder");
 //========END==========
 //========START==========
 // Initialize Firebase
@@ -51,6 +56,12 @@ let state = {
     selectedFriendID: "",
     activities: [],
     friends: []
+    /* reminders: {
+        daily: [],
+        weekly: [],
+        fortnightly: [],
+        monthly: []
+    } */
 }
 //========END==========
 //========START==========
@@ -372,53 +383,69 @@ const removeElement = (el) => {
 //========START==========
 // Users should be able to get reminders on the homescreen. 
 const loadReminders = () => {
-    console.log("HEllo!");
     // For each friend, 
     db.collection("user").doc(state.userInfo.uid).collection("friends").get().then(friends => {
-        friends.forEach(friend => {
-            let needsReminding = false; // Flag to see if reminder needs to be given.
-            console.log("Friend: ", friend.data());
-
-            // See their lastMetDate and remindFreqeuency. 
-            const lastMetDate = new Date(friend.data().lastMetDate);
-            const daysSinceLastMet = Math.floor((new Date() - lastMetDate) / (1000 * 60 * 60 * 24));
-            console.log("Days since last met: ", daysSinceLastMet);
+        friends.forEach(friend => {           
             let markup = `<ol id="reminderFor-${friend.id}">`;
+            
+            const reminderMessage = getReminderMessage(friend);
+            if (!reminderMessage) return; // This friend doesn't need reminding. 
+            else markup += reminderMessage;
 
-            switch (friend.data().remindFrequency) {
-                case "daily":
-                    // If it's a daily reminder, they should be reminded of them daily. 
-                    needsReminding = true;
-                    markup += `Daily reminder of ${friend.data().name}! Last met on ${lastMetDate}`;
-                    break;
-                case "weekly":
-                    break;
-                case "fortnightly":
-                    break;
-                case "monthly":
-                    if (daysSinceLastMet === 30) {
-                        needsReminding = true;
-                        markup += `Montly reminder of ${friend.data().name}! Last met on ${lastMetDate}`;
-                    } else if (daysSinceLastMet > 30) {
-                        needsReminding = true;
-                        markup += `Catch up with your mate ${friend.data().name}! Haven't seen him in over a month, last met on ${lastMetDate}`;
-                    }
-                    break;
-            }
-
-            if (needsReminding) {
-                // Add Memory button:
-                markup += `<button type="button" onclick="">Done - Add memory</button>`;
-                // Ignore button:
-                markup += `<button type="button" onclick="removeElement('#reminderFor-${friend.id}')">Ignore</button>`; // Closing tag.
-                // Closeing tab:
-                markup += "</ol>";
-                friendReminderList.insertAdjacentHTML("beforeend", markup);
-            }
+            markup = addReminderActionButtons(markup, friend.data());
+            appendReminder(markup, friend.data().remindFrequency);
         });
     });
 
+    function addReminderActionButtons(markup, friend) {
+        // Add Memory button:
+        markup += ` <button type="button" onclick="">Done - Add memory</button>`;
+        // Ignore button:
+        markup += ` <button type="button" onclick="removeElement('#reminderFor-${friend.id}')">Ignore</button>`; // Closing tag.
+        // Closeing tab:
+        markup += "</ol>";
+        return markup;
+    }
 
+    function appendReminder(markup, remindFrequency) {
+        switch (remindFrequency) {
+            case "daily":
+                dailyReminderList.insertAdjacentHTML("beforeend", markup);
+                dailyReminderList.hidden = false;
+                break;
+            case "weekly":
+                weeklyReminderList.insertAdjacentHTML("beforeend", markup);
+                weeklyReminderList.hidden = false;
+                break;
+            case "fortnightly":
+                break;
+            case "monthly":
+                monthlyReminderList.insertAdjacentHTML("beforeend", markup);
+                monthlyReminderList.hidden = false;
+                break;
+        }
+    }
+
+    function getReminderMessage(friend) {
+        let message;
+        const lastMetDate = new Date(friend.data().lastMetDate);
+        const daysSinceLastMet = Math.floor((new Date() - lastMetDate) / (1000 * 60 * 60 * 24));
+
+        switch (friend.data().remindFrequency) {
+            case "daily":
+                if (daysSinceLastMet > 1) message = `Overdue! You haven't caught up with ${friend.data().name} for over ${daysSinceLastMet - 1} days!`
+                break;
+            case "weekly":
+                if (daysSinceLastMet > 7) message = `Overdue! You haven't caught up with ${friend.data().name} for over a week!`
+                break;
+            case "fortnightly":
+                break;
+            case "monthly":
+                if (daysSinceLastMet > 30) message = `Overdue! You haven't caught up with ${friend.data().name} for over a month!`
+                break;
+        }
+        return message;
+    }
     // If it's a weekly reminder, they should be reminded of them every week. "It's been a week since last contact; say hi to them!" After "Contacted", remind them after a week. 
     //      After "Contacted", give them an option to add a memory. 
     //      If ignored, warn them: "You are overdue to saying hi to them! Say hi to them!".
